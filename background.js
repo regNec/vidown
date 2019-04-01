@@ -1,5 +1,5 @@
 chrome.runtime.onInstalled.addListener(function() {
-  chrome.storage.sync.set({urls: []}, function() {});
+  chrome.storage.local.set({urls: []}, function() {});
 });
 
 
@@ -10,17 +10,19 @@ function checkURL(url){
   var result = pat.test(url);
   return result;
 }
+
 chrome.webRequest.onHeadersReceived.addListener(
   function(details) {
-    // console.log(details.type)
     if (details.method == 'GET'){
         if (details.type == 'media' || details.type == 'xmlhttprequest') {
-          var urlList;
-          chrome.storage.sync.get('urls', function(data) {
-            urlList = data.urls;
+          if (!checkURL(details.url)){
+            return;
+          }
+          chrome.storage.local.get('urls', function(data) {
+            var urlList = data.urls;
             urlList.push(details.url);
             // console.log(urlList);
-            chrome.storage.sync.set({urls: urlList}, function() {});
+            chrome.storage.local.set({urls: urlList}, function() {});
           });
         }
     }

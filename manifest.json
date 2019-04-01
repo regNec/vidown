@@ -4,7 +4,8 @@
     "description": "To download videos",
     "permissions": ["storage", 
                     "webRequest",
-                    "<all_urls>"],
+                    "<all_urls>",
+                    "tabs"],
     "background": {
         "scripts": ["background.js"],
         "persistent": true
