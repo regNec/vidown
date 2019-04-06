@@ -20,11 +20,11 @@ function appendDownList(url){
         $.get(url, function(result){
             m3u_raw_data = result;
             ts_url_set = m3uParser(m3u_raw_data);
-            for (const ts_url of ts_url_set) {
-                chrome.downloads.download({
-                    url:url
-                });
-            }
+            // for (const ts_url of ts_url_set) {
+            //     chrome.downloads.download({
+            //         url:url
+            //     });
+            // }
         });
     });
     // urlItem.append(downBtn);
@@ -45,16 +45,9 @@ $("#clear_btn").click(function(){
     clear();
 });
 
-// TODO: change this by using chrome.runtime.sendMessage & onMessage.addListener
-chrome.storage.onChanged.addListener(function(changes, namespace){
-    var urlList = changes['urls'];
-    if (urlList.newValue.length > urlList.oldValue.length){
-        appendDownList(urlList.newValue[urlList.newValue.length - 1]);
-    }
-    else{
-        $("#downList").empty();
-        showDownList(urlList.newValue);
-    }
+chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
+    // alert(message.url);
+    appendDownList(message.url);
 });
 
 chrome.tabs.query({active: true} ,function (tabs){

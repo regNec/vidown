@@ -23,7 +23,11 @@ chrome.webRequest.onHeadersReceived.addListener(
             var urlList = data.urls;
             urlList.push(details.url);
             // console.log(urlList);
-            chrome.storage.local.set({urls: urlList}, function() {});
+            chrome.storage.local.set({urls: urlList}, function() {
+              chrome.runtime.sendMessage({
+                url: details.url
+              });
+            });
           });
         }
     }
