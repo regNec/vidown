@@ -5,7 +5,8 @@
     "permissions": ["storage", 
                     "webRequest",
                     "<all_urls>",
-                    "tabs"],
+                    "tabs",
+                    "downloads"],
     "background": {
         "scripts": ["background.js"],
         "persistent": true

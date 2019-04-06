@@ -1,11 +1,12 @@
 chrome.runtime.onInstalled.addListener(function() {
   chrome.storage.local.set({urls: []}, function() {});
+  chrome.storage.local.set({ts_urls: []}, function() {});
 });
 
 
 function checkURL(url){
   // TODO: more concrete check
-  var pat = new RegExp(/.*\.ts/i);
+  var pat = new RegExp(/.*\.m3u/i);
 
   var result = pat.test(url);
   return result;
