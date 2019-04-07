@@ -52,26 +52,24 @@ function appendDownList(url){
             url:url
         });
     });
-    // urlItem.append(downBtn);
     downList.append(urlItem);
 }
 
 function extendDownList(urlList){
-    let urlList_uq = new Set(urlList);
-    let urlList_ = Array.from(urlList_uq);
-    for (let i = 0; i < urlList_.length; i++){
-        appendDownList(urlList_[i], '');
+    for (let i = 0; i < urlList.length; i++){
+        appendDownList(urlList[i]);
     }
 }
 
 function clear(){
     chrome.storage.local.set({urls: []}, function() {});
-    chrome.storage.local.set({urls: []}, function() {});
+    chrome.storage.local.set({ts_urls: []}, function() {});
     $("#downList").empty();
 }
 
 chrome.storage.local.get('ts_urls', function(data) {
     var urlList = data.ts_urls;
+    // $("#downList").empty();
     extendDownList(urlList);
 });
 
@@ -86,13 +84,16 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
     let ts_url_set_ = new Array();
     $.get(message.url, function(m3u_raw_data){
         ts_url_set = m3uParser(m3u_raw_data, host);
+        // console.log(ts_url_set);
         chrome.storage.local.get('ts_urls', function(data){
             // alert(data.ts_urls);
             ts_url_set_ = union(data.ts_urls, ts_url_set);
-            chrome.storage.local.set({ts_urls: ts_url_set_}, function(){});
+            // $("#downList").empty();
             extendDownList(difference(ts_url_set_, data.ts_urls));
+            chrome.storage.local.set({ts_urls: ts_url_set_}, function(){});
         });
     });
+    
 });
 
 chrome.tabs.query({active: true} ,function (tabs){
