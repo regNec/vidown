@@ -45,7 +45,8 @@ function getHost(url){
 
 function appendDownList(url){
     let downList = $("#downList");
-    let urlItem = $("<li></li>").append($("<a></a>").attr("href",url).text(url));
+    let reduced_url = url.split('?')[0];
+    let urlItem = $("<li></li>").append($("<a></a>").attr("href",url).text(reduced_url));
     urlItem.click(function(){
         chrome.downloads.download({
             url:url
@@ -56,8 +57,10 @@ function appendDownList(url){
 }
 
 function extendDownList(urlList){
-    for (let i = 0; i < urlList.length; i++){
-        appendDownList(urlList[i], '');
+    let urlList_uq = new Set(urlList);
+    let urlList_ = Array.from(urlList_uq);
+    for (let i = 0; i < urlList_.length; i++){
+        appendDownList(urlList_[i], '');
     }
 }
 
