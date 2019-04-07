@@ -1,2 +1,2 @@
 # vidown
-An chrome extension for downloading videos
+A chrome extension for downloading videos

@@ -6,7 +6,8 @@
                     "webRequest",
                     "<all_urls>",
                     "tabs",
-                    "downloads"],
+                    "downloads",
+                    "debugger"],
     "background": {
         "scripts": ["background.js"],
         "persistent": true

@@ -1,44 +1,75 @@
-function showDownList(urlList){
-    for (var i = 0; i < urlList.length; i++){
-        appendDownList(urlList[i]);
+function union(setA, setB) {
+    var _union = new Set(setA);
+    for (var elem of setB) {
+        _union.add(elem);
     }
+    return Array.from(_union);
 }
 
-function m3uParser(m3u_raw_data){
-    let ts_url_set = new Set();
-    // TODO: parse m3u data to get ts url set
-    alert(m3u_raw_data);
+function difference(setA, setB) {
+    var _difference = new Set(setA);
+    for (var elem of setB) {
+        _difference.delete(elem);
+    }
+    return Array.from(_difference);
+}
+
+function m3uParser(m3u_raw_data, host){
+    let ts_url_set = new Array();
+    let index1= m3u_raw_data.split(",");
+	
+	for(let i = 1; i < index1.length; i++){
+		let num = index1[i].indexOf("#");
+        if(num!=-1){
+            index1[i]=index1[i].substr(0,num-1);
+        }
+		else{
+		    index1[i]=index1[i].substr(0,index1[i].length-1);
+        }
+    }	
+    index1.splice(0,1);
+    for (let i = 0; i < index1.length; i++) {
+        index1[i] = host + index1[i];
+    }	
+    ts_url_set=index1;
     return ts_url_set;
 }
 
+function getHost(url){
+    let host_list = url.split("/");
+    host_list.pop();
+    host = host_list.join('/') + '/';
+    // alert(host)
+    return host;
+}
+
 function appendDownList(url){
-    var downList = $("#downList");
-    var urlItem = $("<li></li>").append($("<a></a>").attr("href",url).text(url));
+    let downList = $("#downList");
+    let urlItem = $("<li></li>").append($("<a></a>").attr("href",url).text(url));
     urlItem.click(function(){
-        let m3u_raw_data;
-        let ts_url_set = new Set();
-        $.get(url, function(result){
-            m3u_raw_data = result;
-            ts_url_set = m3uParser(m3u_raw_data);
-            // for (const ts_url of ts_url_set) {
-            //     chrome.downloads.download({
-            //         url:url
-            //     });
-            // }
+        chrome.downloads.download({
+            url:url
         });
     });
     // urlItem.append(downBtn);
     downList.append(urlItem);
 }
 
+function extendDownList(urlList){
+    for (let i = 0; i < urlList.length; i++){
+        appendDownList(urlList[i], '');
+    }
+}
+
 function clear(){
+    chrome.storage.local.set({urls: []}, function() {});
     chrome.storage.local.set({urls: []}, function() {});
     $("#downList").empty();
 }
 
-chrome.storage.local.get('urls', function(data) {
-    var urlList = data.urls;
-    showDownList(urlList);
+chrome.storage.local.get('ts_urls', function(data) {
+    var urlList = data.ts_urls;
+    extendDownList(urlList);
 });
 
 $("#clear_btn").click(function(){
@@ -47,7 +78,18 @@ $("#clear_btn").click(function(){
 
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
     // alert(message.url);
-    appendDownList(message.url);
+    let host = getHost(message.url);
+    let ts_url_set = new Array();
+    let ts_url_set_ = new Array();
+    $.get(message.url, function(m3u_raw_data){
+        ts_url_set = m3uParser(m3u_raw_data, host);
+        chrome.storage.local.get('ts_urls', function(data){
+            // alert(data.ts_urls);
+            ts_url_set_ = union(data.ts_urls, ts_url_set);
+            chrome.storage.local.set({ts_urls: ts_url_set_}, function(){});
+            extendDownList(difference(ts_url_set_, data.ts_urls));
+        });
+    });
 });
 
 chrome.tabs.query({active: true} ,function (tabs){
