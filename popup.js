@@ -43,9 +43,18 @@ function getHost(url){
     return host;
 }
 
-function appendDownList(url){
-    let downList = $("#downList");
+function appendDownList(url, tabid){
+    let downList = $("#tab_" + tabid);
+    let tab_url = "";
+    chrome.tabs.get(tabid, function(tab){
+        tab_url = tab.url;
+        // console.log(tab_url);
+    });
+    if(downList.length <= 0){
+        $("#tabDown_list").append($("<ul></ul>").attr("id", "tab_" + tabid));
+    }
     let reduced_url = url.split('?')[0];
+    reduced_url = reduced_url.split('/').pop();
     let urlItem = $("<li></li>").append($("<a></a>").attr("href",url).text(reduced_url));
     urlItem.click(function(){
         chrome.downloads.download({
@@ -53,50 +62,99 @@ function appendDownList(url){
         });
     });
     downList.append(urlItem);
+
+    chrome.tabs.query({active: true, currentWindow: true} ,function (tabs){
+        // console.log(tabs[0]);
+        $("[id^='tab_']").hide();
+        $("#tab_" + tabs[0].id).show();
+    });
 }
 
-function extendDownList(urlList){
+function extendDownList(urlList, tabid){
     for (let i = 0; i < urlList.length; i++){
-        appendDownList(urlList[i]);
+        appendDownList(urlList[i], tabid);
     }
 }
 
 function clear(){
     chrome.storage.local.set({urls: []}, function() {});
     chrome.storage.local.set({ts_urls: []}, function() {});
-    $("#downList").empty();
+    $("#tabDown_list").empty();
 }
 
 chrome.storage.local.get('ts_urls', function(data) {
     var urlList = data.ts_urls;
-    // $("#downList").empty();
-    extendDownList(urlList);
+    for(let i = 0; i < urlList.length; i++){
+        extendDownList(urlList[i].urls, urlList[i].tabid);
+    }
+    // console.log(urlList);
+    // extendDownList(urlList);
 });
 
 $("#clear_btn").click(function(){
     clear();
 });
 
+$("#download_all").click(function(){
+    for (const link of $("[href]:visible")) {
+        link.click();
+    }
+    clear();
+});
+
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
-    // alert(message.url);
     let host = getHost(message.url);
+    let tab_id = message.tabId;
     let ts_url_set = new Array();
     let ts_url_set_ = new Array();
+    // console.log(message);
     $.get(message.url, function(m3u_raw_data){
         ts_url_set = m3uParser(m3u_raw_data, host);
         // console.log(ts_url_set);
         chrome.storage.local.get('ts_urls', function(data){
-            // alert(data.ts_urls);
-            ts_url_set_ = union(data.ts_urls, ts_url_set);
-            // $("#downList").empty();
-            extendDownList(difference(ts_url_set_, data.ts_urls));
-            chrome.storage.local.set({ts_urls: ts_url_set_}, function(){});
+            // console.log(data);
+            let url_list = data.ts_urls;
+            if (url_list.length == 0){
+                url_list.push({
+                    tabid: tab_id,
+                    urls: ts_url_set
+                });
+                chrome.storage.local.set({ts_urls: url_list}, function(){});
+                extendDownList(ts_url_set, tab_id);
+                // console.log(url_list);
+                // console.log("not In else");
+            }
+            else{
+                for (let i = 0; i < url_list.length; i++) {
+                    if (url_list[i].tabid == tab_id) {
+                        ts_url_set_ = union(url_list[i].urls, ts_url_set);
+                        extendDownList(difference(ts_url_set_, url_list[i].urls), tab_id);
+                        url_list[i] = {
+                            tabid: tab_id,
+                            urls: ts_url_set_
+                        };
+                        chrome.storage.local.set({ts_urls: url_list}, function(){});
+                        break;       
+                    }
+                    if (i == url_list.length - 1){
+                        url_list.push({
+                            tabid: tab_id,
+                            urls: ts_url_set
+                        });
+                        extendDownList(ts_url_set, tab_id);
+                    }
+                }
+                // console.log(url_list);
+                // console.log("In else");
+            }
         });
     });
     
 });
-
-chrome.tabs.query({active: true} ,function (tabs){
+chrome.tabs.query({active: true, currentWindow: true} ,function (tabs){
     var tab_url = $("#current_tab_url");
     tab_url.html("Current Tab URL: <br>"+ tabs[0].url);
+    // console.log(tabs[0]);
+    $("[id^='tab_']").hide();
+    // $("#tab_" + tabs[0].id).show();
 });
