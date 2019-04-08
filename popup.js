@@ -52,6 +52,7 @@ function appendDownList(url, tabid){
     });
     if(downList.length <= 0){
         $("#tabDown_list").append($("<ul></ul>").attr("id", "tab_" + tabid));
+        downList = $("#tab_" + tabid);
     }
     let reduced_url = url.split('?')[0];
     reduced_url = reduced_url.split('/').pop();
@@ -62,7 +63,7 @@ function appendDownList(url, tabid){
         });
     });
     downList.append(urlItem);
-
+    // console.log(downList, "added.");
     chrome.tabs.query({active: true, currentWindow: true} ,function (tabs){
         // console.log(tabs[0]);
         $("[id^='tab_']").hide();
@@ -82,35 +83,12 @@ function clear(){
     $("#tabDown_list").empty();
 }
 
-chrome.storage.local.get('ts_urls', function(data) {
-    var urlList = data.ts_urls;
-    for(let i = 0; i < urlList.length; i++){
-        extendDownList(urlList[i].urls, urlList[i].tabid);
-    }
-    // console.log(urlList);
-    // extendDownList(urlList);
-});
-
-$("#clear_btn").click(function(){
-    clear();
-});
-
-$("#download_all").click(function(){
-    for (const link of $("[href]:visible")) {
-        link.click();
-    }
-    clear();
-});
-
-chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
-    let host = getHost(message.url);
-    let tab_id = message.tabId;
+function update(URL, tab_id, host){
     let ts_url_set = new Array();
     let ts_url_set_ = new Array();
-    // console.log(message);
-    $.get(message.url, function(m3u_raw_data){
+    $.get(URL, function(m3u_raw_data){
         ts_url_set = m3uParser(m3u_raw_data, host);
-        // console.log(ts_url_set);
+        console.log(ts_url_set);
         chrome.storage.local.get('ts_urls', function(data){
             // console.log(data);
             let url_list = data.ts_urls;
@@ -149,11 +127,51 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
             }
         });
     });
-    
+}
+
+var port = chrome.runtime.connect({name: "popup"});
+
+port.onMessage.addListener(function(message){
+    console.log(message, "received by port.");
+    let host = getHost(message.url);
+    let tab_id = message.tabId;
+    let URL = message.url;
+    update(URL, tab_id, host);
 });
+
+chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
+    console.log(message, "received in runtime.");
+    if (!message.cached){
+        let host = getHost(message.url);
+        let tab_id = message.tabId;
+        let URL = message.url;
+        update(URL, tab_id, host);
+    }
+});
+
+chrome.storage.local.get('ts_urls', function(data) {
+    var urlList = data.ts_urls;
+    for(let i = 0; i < urlList.length; i++){
+        extendDownList(urlList[i].urls, urlList[i].tabid);
+    }
+    // console.log(urlList);
+    // extendDownList(urlList);
+});
+
+$("#clear_btn").click(function(){
+    clear();
+});
+
+$("#download_all").click(function(){
+    for (const link of $("[href]:visible")) {
+        link.click();
+    }
+    clear();
+});
+
 chrome.tabs.query({active: true, currentWindow: true} ,function (tabs){
     var tab_url = $("#current_tab_url");
-    tab_url.html("Current Tab URL: <br>"+ tabs[0].url);
+    tab_url.html("Current Tab URL: "+ tabs[0].url + "<br> Tab id: " + tabs[0].id);
     // console.log(tabs[0]);
     $("[id^='tab_']").hide();
     // $("#tab_" + tabs[0].id).show();
