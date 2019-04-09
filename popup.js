@@ -78,9 +78,20 @@ function extendDownList(urlList, tabid){
 }
 
 function clear(){
-    chrome.storage.local.set({urls: []}, function() {});
-    chrome.storage.local.set({ts_urls: []}, function() {});
-    $("#tabDown_list").empty();
+    chrome.tabs.query({active: true, currentWindow: true} ,function (tabs){
+        let tabId = tabs[0].id;
+        chrome.storage.local.get('ts_urls', function(data) {
+            let urlList = data.ts_urls;
+            // console.log(typeof tabId);
+            for(let i = 0; i < urlList.length; i++){
+                if (urlList[i].tabid == tabId){
+                    urlList.splice(i, 1);
+                }
+            }
+            chrome.storage.local.set({ts_urls: urlList}, function() {});
+        });
+        $("#tab_" +  tabId).remove();
+    });
 }
 
 function update(URL, tab_id, host){
@@ -88,7 +99,7 @@ function update(URL, tab_id, host){
     let ts_url_set_ = new Array();
     $.get(URL, function(m3u_raw_data){
         ts_url_set = m3uParser(m3u_raw_data, host);
-        console.log(ts_url_set);
+        // console.log(ts_url_set);
         chrome.storage.local.get('ts_urls', function(data){
             // console.log(data);
             let url_list = data.ts_urls;
@@ -170,8 +181,13 @@ $("#download_all").click(function(){
 });
 
 chrome.tabs.query({active: true, currentWindow: true} ,function (tabs){
-    var tab_url = $("#current_tab_url");
-    tab_url.html("Current Tab URL: "+ tabs[0].url + "<br> Tab id: " + tabs[0].id);
+    let tab_info = $("#current_tab");
+    let tab_url = $("<p></p>").attr("id", "tabUrl");
+    tab_url.text("Current Tab URL: " + tabs[0].url);
+    let tab_id = $("<p></p>").attr("id", "tabId");
+    tab_id.text("Tab id: " + tabs[0].id);
+    tab_info.append(tab_url);
+    tab_info.append(tab_id);
     // console.log(tabs[0]);
     $("[id^='tab_']").hide();
     // $("#tab_" + tabs[0].id).show();

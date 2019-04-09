@@ -70,8 +70,8 @@ chrome.runtime.onConnect.addListener(function(port) {
         console.log("dequeue.");
       }
       chrome.storage.local.set({m3u_queue: queue}, function(){});
-      port.disconnect();
-      console.log("disconnected by myself.");
+      // port.disconnect();
+      // console.log("disconnected by myself.");
     });
     port.onDisconnect.addListener(function(event){
       chrome.storage.local.set({popup_state: "closed"}, function() {});
